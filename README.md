@@ -1,3 +1,9 @@
+<p align="left">
+  <a href="https://doi.org/10.5281/zenodo.20044545">
+    <img src="https://img.shields.io/badge/DOI-10.5281/zenodo.20044545-blue" alt="Latest version">
+  </a>
+</p>
+
 # 5D CQMOM Particle Simulation Framework
 
 A macroscopic Eulerian solver for tracking the evolution of non-spherical oblate ellipsoidal particle populations using the **Conditional Quadrature Method of Moments (CQMOM)**. Developed as part of the M.Sc. thesis of Mohamed Amine Bouguezzoul with the title *"Conditional Quadrature Method of Moments for Populations of Non-Spherical Particles"* at Polytechnique Montréal (2026), supervised by Bruno Blais, Bianca Viggiano, and Fabian Denner.
