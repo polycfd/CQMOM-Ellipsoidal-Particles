@@ -36,7 +36,7 @@ $$\boldsymbol{\xi} = [d, \chi, u_p, v_p, w_p]$$
 - **Surface attrition** — kinetic-energy-driven $v^2$-attrition and continuous spheroidization
 - **Stochastic breakage recoil** — isotropic velocity kick with analytically closed Gaussian moment expectations
 - **Gaussian copula mixture initializer** — supports lognormal, beta, and normal marginals with arbitrary correlation structure
-- **Adaptive time-stepping** — SSP-RK3 with embedded error estimator and PID controller
+- **Adaptive time-stepping** — SSP-RK3 with embedded error estimator and time-step adaptation
 
 ---
 
