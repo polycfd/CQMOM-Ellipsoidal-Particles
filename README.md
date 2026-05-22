@@ -8,6 +8,8 @@
 
 A macroscopic Eulerian solver for tracking the evolution of non-spherical oblate ellipsoidal particle populations using the **Conditional Quadrature Method of Moments (CQMOM)**. Developed as part of the M.Sc. thesis of Mohamed Amine Bouguezzoul with the title *"Conditional Quadrature Method of Moments for Populations of Non-Spherical Particles"* at Polytechnique Montréal (2026), supervised by Bruno Blais, Bianca Viggiano, and Fabian Denner.
 
+For a hands-on introduction to the **Quadrature Method of Moments (QMOM)**, check out the [QMOM-Intro](https://github.com/polycfd/QMOM-Intro) repository.
+
 ---
 
 ## Overview
