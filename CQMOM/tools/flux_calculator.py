@@ -21,6 +21,7 @@ def zeroth_order_local_flux(t, nodes, weights, k, function = lambda t,xi,alpha: 
     Returns:
     numpy.ndarray: The calculated local flux for the order k.
     """
+    
     # Ensure the input arrays are numpy arrays
     nodes = np.asarray(nodes)
     weights = np.asarray(weights)

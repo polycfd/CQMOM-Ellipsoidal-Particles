@@ -28,6 +28,7 @@ def calculate_beta_params(mu, std):
     Converts desired Mean and Std Dev of a Beta distribution [0,1]
     into shape parameters alpha (a) and beta (b).
     """
+    
     var = std**2
     
     # Constraint check: variance cannot exceed mu*(1-mu) for a Beta on [0,1]

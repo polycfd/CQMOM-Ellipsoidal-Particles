@@ -64,13 +64,13 @@ _MIXTURE = {
 
     "mode_1": {
         # Primary population - spherical-ish particles, quiescent
-        "means": [150e-6,  0.3,  1.0,  1.0,  0.0],
+        "means": [130e-6,  0.3,  1.0,  1.0,  0.0],
         "stds":  [  2e-5,  0.1,  0.5,  0.5,  0.5],
     },
 
     "mode_2": {
         # Secondary population - same size, drifting flow (inactive by default)
-        "means": [150e-6,  0.3,  1.0, -1.0,  0.0],
+        "means": [130e-6,  0.3,  1.0, -1.0,  0.0],
         "stds":  [  2e-5,  0.1,  0.5,  0.5,  0.5],
     },
 }
@@ -80,7 +80,7 @@ _MIXTURE = {
 # =============================================================================
 _PHYSICS = {
     "rho_p": 2000.0,   # particle density   [kg/m³]
-    "rho_f": 1.225,    # fluid density      [kg/m³]
+    "rho_f": 1.2,      # fluid density      [kg/m³]
     "mu_f":  1.8e-5,   # dynamic viscosity  [Pa·s]
     "g":     9.81,     # gravitational acc. [m/s²]
 }
@@ -93,7 +93,7 @@ _PHYSICS = {
 # AR relaxation:   χ' = χ + relaxation_factor * (1 − χ)
 # =============================================================================
 _BREAKAGE = {
-    "frag_rate_const":   1e8,    # prefactor k_b               [s⁻¹ m⁻frag_power]
+    "frag_rate_const":   1e8,    # prefactor k_b                [s⁻¹ m⁻frag_power]
     "frag_power":        2.0,    # diameter exponent p_b        [-]
     "min_frag_size":     1e-6,   # smallest breakable diameter  [m]
     "relaxation_factor": 0.5,    # aspect-ratio relaxation      [-]
@@ -115,7 +115,7 @@ _ATTRITION = {
 # =============================================================================
 _RESTITUTION = {
     "restitution_factor": 0.5,   # fraction of parent velocity kept   [-]
-    "sigma_kick":         0.5,   # std-dev of post-breakage kick       [m/s]
+    "sigma_kick":         0.5,   # std-dev of post-breakage kick      [m/s]
 }
 
 # =============================================================================
@@ -175,13 +175,13 @@ _PLOTTING = {
     "colors": {
         "mc": "#2ca02c",   # green  - Monte Carlo  (ground truth)
         "mt": "#d62728",   # red    - Moment Transport
-        "ht": "#1f77b4",   # blue   - Hybrid Transport
+        "ht": "#000000",   # blue   - Hybrid Transport
     },
 
     # ── Per-dimension histogram colours (initial distribution plot) ───────────
     "dim_colors": {
         "d":  "#E69F00",   # diameter
-        "ar": "#56B4E9",   # aspect ratio
+        "chi": "#56B4E9",  # aspect ratio
         "u":  "#009E73",   # u velocity
         "v":  "#0072B2",   # v velocity
         "w":  "#D55E00",   # w velocity

@@ -122,7 +122,7 @@ def wheeler(moments, n, adaptive=False, rmin=1e-10, eabs=1e-10, cutoff=1e-30):
         else:
             return np.array(x), np.array(w), werror
 
-def _compute_conditional_moments(xi, w, moments_slice, n_nodes, rcond):
+def compute_conditional_moments(xi, w, moments_slice, n_nodes, rcond):
     """
     Compute conditional moments for the next dimension given the current nodes and weights.
 
@@ -147,7 +147,7 @@ def _compute_conditional_moments(xi, w, moments_slice, n_nodes, rcond):
         c_m[(slice(None),) + idx] = inv_VR @ moments_slice[(slice(None, n_nodes),) + idx]
     return c_m
 
-def CQMOM(N, m, adaptive=False, rmin=None, eabs=None, cutoff=1e-2, rcond=1e-30):
+def cqmom(N, m, adaptive=False, rmin=None, eabs=None, cutoff=1e-2, rcond=1e-30):
     """
     Compute a multivariate quadrature approximation using CQMOM for an arbitrary number of dimensions.
 
@@ -223,7 +223,7 @@ def CQMOM(N, m, adaptive=False, rmin=None, eabs=None, cutoff=1e-2, rcond=1e-30):
     #   'c_m'     : conditional moment array for the remaining dimensions
     #   'dim_idx' : which dimension we are about to process next (0-based)
     nodes = []
-    c_m_1 = _compute_conditional_moments(xi1, w1, m, N1_actual, rcond)
+    c_m_1 = compute_conditional_moments(xi1, w1, m, N1_actual, rcond)
 
     for i in range(N1_actual):
         nodes.append({
@@ -265,7 +265,7 @@ def CQMOM(N, m, adaptive=False, rmin=None, eabs=None, cutoff=1e-2, rcond=1e-30):
             # If this is not the last dimension, compute conditional moments for dim+1
             if dim < d - 1:
                 n_new = len(xi_new)
-                c_m_next = _compute_conditional_moments(xi_new, w_new, c_m_parent, n_new, rcond)
+                c_m_next = compute_conditional_moments(xi_new, w_new, c_m_parent, n_new, rcond)
             else:
                 c_m_next = [None] * len(xi_new)
 
