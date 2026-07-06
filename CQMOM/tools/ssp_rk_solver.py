@@ -1,8 +1,8 @@
 import numpy as np
 
-def SSP_RK3(state, time_step, t, momidx, compute_flux, adaptive=False):
+def ssp_rk3(state, time_step, t, momidx, compute_flux, adaptive=False):
     """
-    Advances the state with a Runge–Kutta 2/3 SSP scheme using compute_flux.
+    Advances the state with a Runge-Kutta 2/3 SSP scheme using compute_flux.
 
     Parameters:
     - state: numpy array, the current solution moments
