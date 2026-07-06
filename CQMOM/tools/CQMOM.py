@@ -122,7 +122,16 @@ def wheeler(moments, n, adaptive=False, rmin=1e-10, eabs=1e-10, cutoff=1e-30):
         else:
             return np.array(x), np.array(w), werror
 
-def _compute_conditional_moments(xi, w, moments_slice, n_nodes, rcond):
+
+def compute_conditional_moments_direct(xi, w, moments_slice, n_nodes, rcond=1e-30):
+    V = np.vander(xi, n_nodes, increasing=True).T
+    VR = V @ np.diag(w)
+    rhs = moments_slice[:n_nodes].reshape(n_nodes, -1)
+    sol = np.linalg.solve(VR, rhs)
+    c_m = sol.reshape((n_nodes,) + moments_slice.shape[1:])
+    return c_m
+
+def compute_conditional_moments_pseudo(xi, w, moments_slice, n_nodes, rcond):
     """
     Compute conditional moments for the next dimension given the current nodes and weights.
 
@@ -137,7 +146,7 @@ def _compute_conditional_moments(xi, w, moments_slice, n_nodes, rcond):
     :return: Conditional moments array with the same shape as moments_slice but
              first axis replaced by n_nodes.
     """
-    V = np.vander(xi, n_nodes, increasing=True).T  # (n_nodes, n_nodes)
+    V = np.vander(xi, n_nodes, increasing=True).T   # (n_nodes, n_nodes)
     VR = V @ np.diag(w)                             # (n_nodes, n_nodes)
     inv_VR = np.linalg.pinv(VR, rcond=rcond)        # (n_nodes, n_nodes)
 
@@ -147,7 +156,7 @@ def _compute_conditional_moments(xi, w, moments_slice, n_nodes, rcond):
         c_m[(slice(None),) + idx] = inv_VR @ moments_slice[(slice(None, n_nodes),) + idx]
     return c_m
 
-def CQMOM(N, m, adaptive=False, rmin=None, eabs=None, cutoff=1e-2, rcond=1e-30):
+def cqmom(N, m, compute_conditional_moments, adaptive=False, rmin=None, eabs=None, cutoff=1e-6, rcond=1e-30):
     """
     Compute a multivariate quadrature approximation using CQMOM for an arbitrary number of dimensions.
 
@@ -172,7 +181,7 @@ def CQMOM(N, m, adaptive=False, rmin=None, eabs=None, cutoff=1e-2, rcond=1e-30):
         Defaults to [1e-8] * len(N).
     cutoff : float, optional
         Minimum weight threshold (relative to zeroth moment) for a node to be considered
-        valid in the first dimension. Default is 1e-2.
+        valid in the first dimension. Default is 1e-6.
     rcond : float, optional
         Relative condition number cutoff for pseudoinverse calculations. Default is 1e-30.
 
@@ -223,7 +232,7 @@ def CQMOM(N, m, adaptive=False, rmin=None, eabs=None, cutoff=1e-2, rcond=1e-30):
     #   'c_m'     : conditional moment array for the remaining dimensions
     #   'dim_idx' : which dimension we are about to process next (0-based)
     nodes = []
-    c_m_1 = _compute_conditional_moments(xi1, w1, m, N1_actual, rcond)
+    c_m_1 = compute_conditional_moments(xi1, w1, m, N1_actual, rcond)
 
     for i in range(N1_actual):
         nodes.append({
@@ -265,17 +274,12 @@ def CQMOM(N, m, adaptive=False, rmin=None, eabs=None, cutoff=1e-2, rcond=1e-30):
             # If this is not the last dimension, compute conditional moments for dim+1
             if dim < d - 1:
                 n_new = len(xi_new)
-                c_m_next = _compute_conditional_moments(xi_new, w_new, c_m_parent, n_new, rcond)
+                c_m_next = compute_conditional_moments(xi_new, w_new, c_m_parent, n_new, rcond)
             else:
                 c_m_next = [None] * len(xi_new)
 
             for k, (xi_k, w_k) in enumerate(zip(xi_new, w_new)):
-                next_nodes.append({
-                    'xi': node['xi'] + (xi_k,),
-                    'w': node['w'] * w_k,
-                    'c_m': c_m_next[k],
-                    'dim_idx': dim + 1,
-                })
+                next_nodes.append({'xi': node['xi'] + (xi_k,), 'w': node['w'] * w_k, 'c_m': c_m_next[k], 'dim_idx': dim + 1})
 
         nodes = next_nodes
 

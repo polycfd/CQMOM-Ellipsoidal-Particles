@@ -30,8 +30,8 @@ from datetime import datetime
 # =============================================================================
 _SIMULATION = {
     "dim":             5,       # state-vector length: [d, χ, u, v, w]
-    "time_step":       1e-2,    # initial / fixed time step              [s]
-    "simulation_time": 1.0,     # total simulation horizon               [s]
+    "time_step":       1.0e-2,  # initial / fixed time step [s]
+    "simulation_time": 1.0,     # total simulation horizon  [s]
     "num_particles":   10_000,  # Monte Carlo ensemble size
 }
 
@@ -64,14 +64,14 @@ _MIXTURE = {
 
     "mode_1": {
         # Primary population - spherical-ish particles, quiescent
-        "means": [150e-6,  0.3,  1.0,  1.0,  0.0],
-        "stds":  [  2e-5,  0.1,  0.5,  0.5,  0.5],
+        "means": [130.0e-6,  0.3,  1.0,  1.0,  0.0],
+        "stds":  [  2.0e-5,  0.1,  0.5,  0.5,  0.5],
     },
 
     "mode_2": {
         # Secondary population - same size, drifting flow (inactive by default)
-        "means": [150e-6,  0.3,  1.0, -1.0,  0.0],
-        "stds":  [  2e-5,  0.1,  0.5,  0.5,  0.5],
+        "means": [130.0e-6,  0.3,  1.0, -1.0,  0.0],
+        "stds":  [  2.0e-5,  0.1,  0.5,  0.5,  0.5],
     },
 }
 
@@ -80,7 +80,7 @@ _MIXTURE = {
 # =============================================================================
 _PHYSICS = {
     "rho_p": 2000.0,   # particle density   [kg/m³]
-    "rho_f": 1.225,    # fluid density      [kg/m³]
+    "rho_f": 1.2,      # fluid density      [kg/m³]
     "mu_f":  1.8e-5,   # dynamic viscosity  [Pa·s]
     "g":     9.81,     # gravitational acc. [m/s²]
 }
@@ -90,18 +90,18 @@ _PHYSICS = {
 #
 # Power-law rate:  b(d) = frag_rate_const * d^frag_power   [s⁻¹]
 # Binary split:    d' = d / 2^(1/3)    (volume-conserving)
-# AR relaxation:   χ' = χ + relaxation_factor * (1 − χ)
+# Aspect ratio relaxation:   χ' = χ + relaxation_factor * (1 − χ)
 # =============================================================================
 _BREAKAGE = {
-    "frag_rate_const":   1e8,    # prefactor k_b               [s⁻¹ m⁻frag_power]
-    "frag_power":        2.0,    # diameter exponent p_b        [-]
-    "min_frag_size":     1e-6,   # smallest breakable diameter  [m]
-    "relaxation_factor": 0.5,    # aspect-ratio relaxation      [-]
+    "frag_rate_const":   1.0e8,   # prefactor k_b                [s⁻¹ m⁻frag_power]
+    "frag_power":        2.0,     # diameter exponent p_b        [-]
+    "min_frag_size":     1.0e-6,  # smallest breakable diameter  [m]
+    "relaxation_factor": 0.5,     # aspect-ratio relaxation      [-]
 }
 
 _ATTRITION = {
-    "tau_relax": 2,    # timescale for shape relaxation towards sphericity (AR=1) [s]
-    "attrition_rate_const": 1e-3,  # attrition rate constant (size reduction proportional to u_rel²) [s⁻¹ m⁻¹]
+    "tau_relax": 2.0,    # timescale for shape relaxation towards sphericity (chi=1) [s]
+    "attrition_rate_const": 1.0e-3,  # attrition rate constant (size reduction proportional to u_rel²) [s⁻¹ m⁻¹]
 }
 
 # =============================================================================
@@ -110,12 +110,12 @@ _ATTRITION = {
 # After breakage each daughter inherits:
 #   u_d = restitution_factor * u_parent  ±  kick ~ N(0, sigma_kick²)
 #
-# Set sigma_kick = 0.0 to disable the velocity dispersion at breakup.
 # Set restitution_factor = 1.0 for fully elastic (momentum-preserving) split.
+# Set sigma_kick = 0.0 to disable the velocity dispersion at breakup.
 # =============================================================================
 _RESTITUTION = {
     "restitution_factor": 0.5,   # fraction of parent velocity kept   [-]
-    "sigma_kick":         0.5,   # std-dev of post-breakage kick       [m/s]
+    "sigma_kick":         0.5,   # std-dev of post-breakage kick      [m/s]
 }
 
 # =============================================================================
@@ -136,9 +136,9 @@ _FLUID_FORCING = {
 # 8. ADAPTIVE TIME STEPPING (SSP-RK3 controller)
 # =============================================================================
 _TIME_STEPPING = {
-    "min_dt":    1e-2,   # minimum allowed time step  [s]
-    "max_dt":    1e-0,   # maximum allowed time step  [s]
-    "error_tol": 1e-5,   # local truncation error target
+    "min_dt":    5.0e-3,   # minimum allowed time step  [s]
+    "max_dt":    1.0,      # maximum allowed time step  [s]
+    "error_tol": 1.0e-8,   # local truncation error target
 }
 
 # =============================================================================
@@ -149,13 +149,10 @@ _TIME_STEPPING = {
 # =============================================================================
 _CQMOM = {
     "adaptive": True,
-    "rmin":     [1e-30] * 5,   # minimum weight threshold per dimension
-    "eabs":     [1e-30] * 5,   # absolute eigenvalue tolerance per dimension
-    "cutoff":   1e-30,          # global weight cutoff
-    "rcond_ht": 1e-6,           # regularisation for Hybrid Transport
-    "rcond_mt": 5e-2,           # regularisation for Moment Transport
-    # Legacy key kept for backward compatibility with older call sites:
-    "rcond":    1e-3,
+    "rmin":     [1.0e-30] * 5,   # minimum weight threshold per dimension
+    "eabs":     [1.0e-30] * 5,   # absolute eigenvalue tolerance per dimension
+    "cutoff":   1.0e-6,          # global weight cutoff
+    "rcond_mt": 0.25,          # regularisation for Moment Transport
 }
 
 # =============================================================================
@@ -175,13 +172,13 @@ _PLOTTING = {
     "colors": {
         "mc": "#2ca02c",   # green  - Monte Carlo  (ground truth)
         "mt": "#d62728",   # red    - Moment Transport
-        "ht": "#1f77b4",   # blue   - Hybrid Transport
+        "ht": "#000000",   # black  - Hybrid Transport
     },
 
     # ── Per-dimension histogram colours (initial distribution plot) ───────────
     "dim_colors": {
         "d":  "#E69F00",   # diameter
-        "ar": "#56B4E9",   # aspect ratio
+        "chi": "#56B4E9",  # aspect ratio
         "u":  "#009E73",   # u velocity
         "v":  "#0072B2",   # v velocity
         "w":  "#D55E00",   # w velocity
@@ -315,7 +312,6 @@ def create_simulation_folder(cfg: dict) -> str:
         w(f"  Nodes per dim (N)   : {ic['N']}")
         w(f"  Moments per dim     : {ic['moments_idx']}")
         w(f"  Adaptive inversion  : {cfg['cqmom']['adaptive']}")
-        w(f"  rcond HT            : {cfg['cqmom']['rcond_ht']}")
         w(f"  rcond MT            : {cfg['cqmom']['rcond_mt']}")
 
         w("\n[Adaptive Time Stepping]")

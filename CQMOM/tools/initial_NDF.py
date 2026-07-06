@@ -1,8 +1,8 @@
 import numpy as np
 import itertools
-from scipy.stats import norm, beta, lognorm
+from scipy.stats import norm, beta, lognorm, multivariate_normal
 
-def MC_Gaussian_moments(mu, cov, N, num_seeds = int(1e6)):
+def mc_gaussian_moments(mu, cov, N, num_seeds = int(1e6)):
     """
     Generate a dictionnary of bivariate Gaussian moments using Monte Carlo method.
     """
@@ -19,15 +19,12 @@ def MC_Gaussian_moments(mu, cov, N, num_seeds = int(1e6)):
         moments[idx] = np.sum(weights * np.prod([nodes[:,i] ** idx[i] for i in range(len(idx))], axis = 0))
     return moments, nodes, weights
 
-import numpy as np
-import itertools
-from scipy.stats import multivariate_normal
-
 def calculate_beta_params(mu, std):
     """
     Converts desired Mean and Std Dev of a Beta distribution [0,1]
     into shape parameters alpha (a) and beta (b).
     """
+    
     var = std**2
     
     # Constraint check: variance cannot exceed mu*(1-mu) for a Beta on [0,1]
@@ -65,13 +62,7 @@ def calculate_lognormal_underlying_params(mu_phys, std_phys):
     # Note: scipy lognorm uses 's' for sigma_ln and 'scale' for exp(mu_ln)
     return sigma_ln, np.exp(mu_ln)
 
-def generate_copula_mixture_conditions(
-    mixture_weights,
-    mode_configs,
-    dim_types,
-    N_moments_shape,
-    num_seeds=int(1e6)
-):
+def generate_copula_mixture_conditions(mixture_weights, mode_configs, dim_types, N_moments_shape, num_seeds=int(1e6)):
     """
     Generates initial conditions using a Gaussian Copula Mixture Model.
     Allows mixing Beta, Lognormal, and Normal marginals with bimodal behavior.
@@ -155,7 +146,7 @@ def generate_copula_mixture_conditions(
     # 3. Combine populations
     final_nodes = np.vstack(all_samples_list)
     mc_weights = np.full(num_seeds, 1.0 / num_seeds)
-
+    
     # 4. Compute Exact Sample Moments
     moments_tensor = np.zeros(N_moments_shape)
     ranges = [range(n) for n in N_moments_shape]
@@ -163,7 +154,7 @@ def generate_copula_mixture_conditions(
     print("Computing Monte Carlo Moments...")
     for idx in itertools.product(*ranges):
         mvals = np.prod([final_nodes[:, j] ** idx[j] for j in range(D)], axis=0)
-        moments_tensor[idx] = np.sum(mc_weights * mvals)
+        moments_tensor[idx] = np.sum(mvals)
 
     print("Done.")
     return moments_tensor, final_nodes, mc_weights  
