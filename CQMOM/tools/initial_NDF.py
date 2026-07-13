@@ -2,21 +2,20 @@ import numpy as np
 import itertools
 from scipy.stats import norm, beta, lognorm, multivariate_normal
 
-def mc_gaussian_moments(mu, cov, N, num_seeds = int(1e6)):
+def mc_gaussian_moments(mu, cov, N, num_seeds=int(1e6)):
     """
-    Generate a dictionnary of bivariate Gaussian moments using Monte Carlo method.
+    Generate multivariate Gaussian raw moments using Monte Carlo sampling.
     """
-    
+
     nodes = np.random.multivariate_normal(mu, cov, size=num_seeds)
 
-    # Compute weights from the bivariate PDF
-    pdf_values = multivariate_normal.pdf(nodes, mean=mu, cov=cov)
-    weights = pdf_values / np.sum(pdf_values)
-    
+    weights = np.ones(num_seeds) / num_seeds
     moments = np.zeros(N)
-    
+
     for idx in itertools.product(*[range(n) for n in N]):
-        moments[idx] = np.sum(weights * np.prod([nodes[:,i] ** idx[i] for i in range(len(idx))], axis = 0))
+        monomial = np.prod([nodes[:, i] ** idx[i] for i in range(len(idx))], axis=0)
+        moments[idx] = np.sum(weights * monomial)
+
     return moments, nodes, weights
 
 def calculate_beta_params(mu, std):
@@ -29,7 +28,7 @@ def calculate_beta_params(mu, std):
     
     # Constraint check: variance cannot exceed mu*(1-mu) for a Beta on [0,1]
     max_var = mu * (1.0 - mu)
-    if var >= max_var * 0.999:
+    if var >= max_var*(1-1e-12):
         raise ValueError(f"Std dev {std} is too large for mean {mu} on [0,1]. "
                          f"Max possible std is {np.sqrt(max_var):.4f}")
     if mu <= 0 or mu >= 1:
@@ -62,99 +61,165 @@ def calculate_lognormal_underlying_params(mu_phys, std_phys):
     # Note: scipy lognorm uses 's' for sigma_ln and 'scale' for exp(mu_ln)
     return sigma_ln, np.exp(mu_ln)
 
-def generate_copula_mixture_conditions(mixture_weights, mode_configs, dim_types, N_moments_shape, num_seeds=int(1e6)):
+def generate_copula_mixture_conditions(mixture_weights, mode_configs, dim_types, N_moments_shape, number_density=1.0, num_seeds=int(1e6)):
     """
     Generates initial conditions using a Gaussian Copula Mixture Model.
-    Allows mixing Beta, Lognormal, and Normal marginals with bimodal behavior.
+
+    The returned moments are absolute raw moments:
+
+        M_alpha = n0 * (1/N) * sum_i prod_d x_i,d^alpha_d
+
+    where n0 is the specified number density.
 
     Args:
-        mixture_weights (list): Probabilities for each mode [p1, p2...]. Sum to 1.0.
-        
-        mode_configs (list of dicts): A list where each item defines a mode. Each dict needs:
-            - 'means': List of PHYSICAL target means for [d, ar, u, v, w]
-            - 'stds':  List of PHYSICAL target standard deviations
-            - 'correlations' (optional): (D,D) Correlation matrix. Defaults to Identity.
-            
-        dim_types (list of strings): Defines distribution for each coordinate.
-                                     Supported: 'lognormal', 'beta', 'normal'.
-                                     e.g., ['lognormal', 'beta', 'normal', 'normal', 'normal']
-        
-        N_moments_shape (tuple): Shape of required moment tensor.
-        num_seeds (int): Total MC samples.
+        mixture_weights (list):
+            Probability of each mixture mode. Must sum to 1.
+
+        mode_configs (list of dicts):
+            Configuration of each mixture mode.
+            Each dict requires:
+                - 'means': physical target means
+                - 'stds': physical target standard deviations
+                - 'correlations' (optional): correlation matrix
+
+        dim_types (list of strings):
+            Marginal distribution type for each coordinate.
+            Supported:
+                - 'lognormal'
+                - 'beta'
+                - 'normal'
+
+        N_moments_shape (tuple):
+            Shape of the required raw moment tensor.
+
+        number_density (float):
+            Absolute number density n0.
+            The returned weights sum to this value.
+
+        num_seeds (int):
+            Number of Monte Carlo samples.
 
     Returns:
-        tuple: (moments_tensor, nodes_array, weights_array)
+        tuple:
+            (moments_tensor, nodes_array, weights_array)
     """
+
+    # ------------------------------------------------------------------
+    # Validation
+    # ------------------------------------------------------------------
+
     num_modes = len(mixture_weights)
     D = len(dim_types)
-    
-    # 1. Determine samples per mode
-    samples_per_mode = np.random.multinomial(num_seeds, mixture_weights)
-    all_samples_list = []
-    
-    print(f"Generating Copula Mixture ({num_modes} modes):")
 
-    # --- LOOP OVER MODES ---
+    if len(mode_configs) != num_modes:
+        raise ValueError("Number of mode configurations must match number of mixture weights.")
+
+    if not np.isclose(np.sum(mixture_weights), 1.0):
+        raise ValueError("Mixture weights must sum to one.")
+
+    if number_density < 0:
+        raise ValueError("Number density must be non-negative.")
+
+    if len(N_moments_shape) != D:
+        raise ValueError("Moment tensor dimension must match number of physical dimensions.")
+
+    # ------------------------------------------------------------------
+    # Generate samples according to mixture distribution
+    # ------------------------------------------------------------------
+
+    samples_per_mode = np.random.multinomial(num_seeds, mixture_weights)
+
+    all_samples_list = []
+
+    print(f"Generating Gaussian Copula Mixture ({num_modes} modes):")
+
     for m_idx in range(num_modes):
+
         count = samples_per_mode[m_idx]
-        if count == 0: continue
-        
+
+        if count == 0:
+            continue
+
         config = mode_configs[m_idx]
-        phys_means = config['means']
-        phys_stds = config['stds']
-        corr_matrix = config.get('correlations', np.eye(D))
-        
+
+        phys_means = config["means"]
+        phys_stds = config["stds"]
+
+        corr_matrix = config.get("correlations", np.eye(D))
+
+        if np.shape(corr_matrix) != (D, D):
+            raise ValueError(f"Correlation matrix for mode {m_idx} has incorrect shape.")
+
         print(f"  - Mode {m_idx+1}: Generating {count} samples...")
-        
-        # A. Generate correlated Standard Normal samples (The "Copula" base)
-        # Mean 0, covariance equals correlation matrix (std=1)
+
+        # --------------------------------------------------------------
+        # Gaussian copula base
+        # --------------------------------------------------------------
+
         Z_samples = np.random.multivariate_normal(np.zeros(D), corr_matrix, size=count)
-        
-        # B. Transform Z -> U (Uniform on [0,1])
         U_samples = norm.cdf(Z_samples)
-        
-        # C. Transform U -> X (Physical variables using Inverse CDFs)
         X_samples = np.zeros_like(U_samples)
-        
+
+        # --------------------------------------------------------------
+        # Marginal transformations
+        # --------------------------------------------------------------
+
         for d_idx in range(D):
+
             dtype = dim_types[d_idx]
+
             mu_target = phys_means[d_idx]
             std_target = phys_stds[d_idx]
-            
-            if dtype == 'beta':
-                # Calculate alpha/beta from physical mu/std
-                a, b = calculate_beta_params(mu_target, std_target)
-                # Apply Inverse CDF
-                X_samples[:, d_idx] = beta.ppf(U_samples[:, d_idx], a, b)
-                
-            elif dtype == 'lognormal':
-                # Calculate underlying shape/scale from physical mu/std
-                shape_s, scale_val = calculate_lognormal_underlying_params(mu_target, std_target)
-                # Apply Inverse CDF
+
+            if dtype == "beta":
+                alpha, beta_val = calculate_beta_params(mu_target, std_target)
+                X_samples[:, d_idx] = beta.ppf(U_samples[:, d_idx], alpha, beta_val)
+            elif dtype == "lognormal":
+                shape_s, scale_val = (calculate_lognormal_underlying_params(mu_target, std_target))
                 X_samples[:, d_idx] = lognorm.ppf(U_samples[:, d_idx], s=shape_s, scale=scale_val)
-                
-            elif dtype == 'normal':
-                # Apply Inverse CDF (which is just shifting and scaling Z)
-                # X = mu + std * Z
-                X_samples[:, d_idx] = norm.ppf(U_samples[:, d_idx], loc=mu_target, scale=std_target)
-            
+            elif dtype == "normal":
+                # For Gaussian marginals, preserve the copula correlation
+                # directly through the correlated Gaussian samples.
+                X_samples[:, d_idx] = (mu_target + std_target * Z_samples[:, d_idx])
             else:
                 raise ValueError(f"Unsupported distribution type: {dtype}")
-                
+
         all_samples_list.append(X_samples)
-        
-    # 3. Combine populations
+
+    # ------------------------------------------------------------------
+    # Combine samples
+    # ------------------------------------------------------------------
+
     final_nodes = np.vstack(all_samples_list)
-    mc_weights = np.full(num_seeds, 1.0 / num_seeds)
-    
-    # 4. Compute Exact Sample Moments
+
+    # Absolute Monte Carlo weights
+    mc_weights = np.full(len(final_nodes), number_density / len(final_nodes))
+
+    # ------------------------------------------------------------------
+    # Compute absolute raw moments
+    # ------------------------------------------------------------------
+
     moments_tensor = np.zeros(N_moments_shape)
-    ranges = [range(n) for n in N_moments_shape]
-    
+
+    ranges = [
+        range(n)
+        for n in N_moments_shape
+    ]
+
     print("Computing Monte Carlo Moments...")
+
     for idx in itertools.product(*ranges):
-        mvals = np.prod([final_nodes[:, j] ** idx[j] for j in range(D)], axis=0)
-        moments_tensor[idx] = np.sum(mvals)
+
+        monomial = np.prod(
+            [
+                final_nodes[:, j] ** idx[j]
+                for j in range(D)
+            ],
+            axis=0
+        )
+
+        moments_tensor[idx] = np.sum(mc_weights * monomial)
 
     print("Done.")
-    return moments_tensor, final_nodes, mc_weights  
+
+    return (moments_tensor, final_nodes, mc_weights)
