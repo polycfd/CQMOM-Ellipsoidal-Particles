@@ -24,7 +24,6 @@ import os
 import numpy as np
 from datetime import datetime
 
-
 # =============================================================================
 # 1. SIMULATION
 # =============================================================================
@@ -100,7 +99,7 @@ _BREAKAGE = {
 }
 
 _ATTRITION = {
-    "tau_relax": 2.0,    # timescale for shape relaxation towards sphericity (chi=1) [s]
+    "tau_relax": 2.0,                # timescale for shape relaxation towards sphericity (chi=1) [s]
     "attrition_rate_const": 1.0e-3,  # attrition rate constant (size reduction proportional to u_rel²) [s⁻¹ m⁻¹]
 }
 
@@ -144,15 +143,13 @@ _TIME_STEPPING = {
 # =============================================================================
 # 9. CQMOM INVERSION
 #
-# Two separate rcond values: HT inverts more frequently (needs tighter
-# regularisation); MT can afford a looser threshold for stability.
 # =============================================================================
 _CQMOM = {
     "adaptive": True,
     "rmin":     [1.0e-30] * 5,   # minimum weight threshold per dimension
     "eabs":     [1.0e-30] * 5,   # absolute eigenvalue tolerance per dimension
     "cutoff":   1.0e-6,          # global weight cutoff
-    "rcond_mt": 0.25,          # regularisation for Moment Transport
+    "rcond_mt": 0.25,            # reciprocal conditioning number for the pseudo-inverse applied in MT
 }
 
 # =============================================================================
